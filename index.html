@@ -1,0 +1,344 @@
+<html>
+  <head>
+    <title>Transmogrify text into different font-like unicode ranges</title>
+    <style>
+        input, select {
+          width: 100%;
+        }
+        option {
+          background-color: rgb(200,240,200);
+        }
+        option.alpha {
+          background-color: rgb(255,255,255);
+        }
+        option.num {
+          background-color: rgb(240,240,200);
+        }
+        option.incomplete {
+          background-color: rgb(240,240,240);
+        }
+        option.exp {
+          background-color: rgb(240,200,200);
+        }
+        
+
+    </style>
+  </head>
+  <body>
+    <input id="inbox" value=""> 
+    </input>
+    <select id="translation">
+      <option value="math_bold">Mathematical Bold</option>
+      <option value="math_italic" class="incomplete">Mathematical Italic</option>
+      <option value="math_bold_italic" class="alpha">Mathematical Bold Italic</option>
+      <option value="math_script" class="incomplete">Mathematical Script</option>
+      <option value="math_script_bold" class="alpha">Mathematical Script Bold</option>
+      <option value="math_fraktur" class="incomplete">Mathematical Fraktur</option>
+      <option value="math_double_struck">Math Double-Struck</option>
+      <option value="math_bold_fraktur" class="alpha">Mathematical Bold Fraktur</option>
+      <option value="math_sans_serif">Mathematical Sans-Serif</option>
+      <option value="math_sans_serif_bold">Mathematical Sans-Serif Bold</option>
+      <option value="math_sans_serif_italic" class="alpha">Mathematical Sans-Serif Italic</option>
+      <option value="math_sans_serif_bold_italic" class="alpha">Mathematical Sans-Serif Bold Italic</option>
+      <option value="math_mono">Mathematical Monospace</option>
+
+      <option value="math_greek_bold" class="exp">Mathematical Greek Bold</option>
+      <option value="math_greek_italic" class="exp">Mathematical Greek Italic</option>
+      <option value="math_greek_bold_italic" class="exp">Mathematical Greek Bold Italic</option>
+      <option value="math_greek_sans_serif_bold" class="exp">Mathematical Greek Sans-Serif Bold</option>
+      <option value="math_greek_sans_serif_bold_italic" class="exp">Mathematical Greek Sans-Serif Bold Italic</option>
+
+      <option value="enc_circle">Enclosed Circles</option>
+      <option value="enc_parens" class="alpha">Enclosed Parens</option>
+
+      <option value="enc_full_stop" class="num">Full-Stop suffixed</option>
+      <option value="enc_comma" class="num">Comma suffixed</option>
+      <option value="enc_double_circle" class="num">Enclosed Double Circle</option>
+      <option value="enc_negative_circle" class="incomplete">Enclosed Negative Circle</option>
+      <option value="enc_negative_serif_circle" class="num">Enclosed Negative Serif Circle</option>
+      <option value="enc_circle_italic" class="incomplete">Enclosed Circle Italic</option>
+      <option value="enc_tortoise" class="incomplete">Enclosed Tortoise</option>
+      <option value="enc_square" class="incomplete">Enclosed Square</option>
+      <option value="enc_negative_square" class="incomplete">Enclosed Negative Square</option>
+      <option value="enc_regional" class="incomplete">Enclosed Regional Codes</option>
+
+      <option value="turned" class="exp">Turned Letters</option>
+    </select>
+    <input id="outbox">
+    
+    </input>
+
+
+    <a id="Alphabet">Alphabet</a>
+    <a id="QuickBrown">Quick Brown Fox</a>
+    <script>
+
+
+(function() {
+
+  var outbox      = document.getElementById("outbox");
+  var inbox       = document.getElementById("inbox");
+  var translation = document.getElementById("translation");
+  var translation_name  = null;
+
+  var code_for = function( text ) { return text.charCodeAt(0) };
+
+  var debounce    = function(code, interval) {
+    var last_timeout = null; 
+    return function() {
+      var caller = this;
+      var args = arguments;
+      if ( last_timeout ) {
+        window.clearTimeout( last_timeout );
+        last_timout = null;
+      }
+      last_timeout = window.setTimeout(function(){ 
+        code.apply(caller, args);
+      }, interval);
+    };
+  };
+
+  var is_between = function(min,max) {
+    return function( charcode ) {
+      if ( charcode < min ) return -1;
+      if ( charcode > max ) return -1;
+      return charcode - min;
+    };
+  };
+  var is_char = function(char) {
+    var cmp = code_for(char);
+    return function (charcode) {
+      if ( charcode == cmp ) return 0;
+      return -1;
+    };
+  }
+  var between_chars = function(min,max) {
+    var mincmp = min.charCodeAt(0);
+    var maxcmp = max.charCodeAt(0);
+    return is_between(mincmp,maxcmp);
+  };
+  var exclude_filter = function(blacklist, slave) {
+    return function(charcode) {
+      for ( var bad of blacklist ) {
+        if ( charcode == code_for(bad) ) { return -1 }
+      }
+      return slave(charcode);
+    };
+  };
+  var is_higher_alpha = is_between( 65, 90 );
+  var is_lower_alpha = is_between( 97, 122 );
+  var is_number = is_between( 48, 57 );
+  var is_pos_number = is_between( 48, 56 );
+  var is_zero = is_between( 57, 57 );
+
+  var rule_builder = function( rules ) {
+    return function( charcode ) {
+      for ( var rule in rules ) {
+        var offset = rules[rule]( charcode );
+        if ( offset >= 0 ) {
+          return offset + parseInt( rule );
+        }
+      }
+      return charcode;
+    };
+  };
+
+
+  var simple_map = function( A_code, a_code, n_code ) {
+    var rulebook = {};
+    rulebook[A_code] = is_higher_alpha;
+    rulebook[a_code] = is_lower_alpha;
+    if ( n_code ) {
+      rulebook[n_code] = is_number;
+    }
+    return rule_builder( rulebook );
+  };
+  
+  var translations = {
+    math_bold: rule_builder({
+      "0x1D400": between_chars("A","Z"),
+      "0x1D41A": between_chars("a","z"),
+      "0x1D7CE": between_chars("0","9"),
+    }),
+    math_italic: rule_builder({
+      "0x1D434": between_chars("A","Z"),
+      "0x1D44E": exclude_filter(["h"], between_chars("a","z")),
+       // "h" is missing, plank constant(0x210E) is closest but doesn't work
+    }),
+    math_bold_italic: rule_builder({
+      "0x1D468": between_chars("A","Z"),
+      "0x1D482": between_chars("a","z"),
+    }),
+    math_script: rule_builder({
+      "0x1D49C": exclude_filter(["B","E","F","H","I","L","M","R"], between_chars("A","Z") ),
+      "0x1D4B6": exclude_filter(["e","g","o",], between_chars("a","z")),
+//      "0x210A": is_char("g"),
+    }),  
+    math_script_bold: rule_builder({ 
+      '0x1D4D0': between_chars("A","Z"),
+      '0x1D4EA': between_chars("a","z"),
+    }),
+    math_fraktur: rule_builder({ 
+      '0x1D504': exclude_filter(["C","H","I","R","Z"], between_chars("A","Z") ),
+      '0x1D51E': between_chars("a","z"),
+    }),
+    math_double_struck: rule_builder({
+      '0x1D538': exclude_filter( [ 'C','H', 'N','Q', 'R','Z'], between_chars('A','Z') ),
+      '0x2102': is_char('C'),
+      '0x210D': is_char('H'),
+      '0x2115': is_char('N'),
+      '0x211A': is_char('Q'),
+      '0x211D': is_char('R'),
+      '0x2124': is_char('Z'),
+      '0x1D552': between_chars('a','z'),
+      '0x1D7D8': between_chars('0','9'),
+    }),
+    math_bold_fraktur: simple_map('0x1D56C','0x1D586'),
+    math_sans_serif: simple_map('0x1D5A0','0x1D5BA', '0x1D7E2'),
+    math_sans_serif_bold: simple_map('0x1D5D4','0x1D5EE', '0x1D7EC'),
+    math_sans_serif_italic: simple_map('0x1D608','0x1D622'),
+    math_sans_serif_bold_italic: simple_map('0x1D63C','0x1D656'),
+    math_mono: simple_map('0x1D670','0x1D68A','0x1D7F6'),
+
+    math_greek_bold: simple_map('0x1D6A8','0x1D6C2'),
+    math_greek_italic: simple_map('0x1D6E2','0x1D6FC'),
+    math_greek_bold_italic: simple_map('0x1D71C','0x1D736'),
+    math_greek_sans_serif_bold: simple_map('0x1D756','0x1D770'),
+    math_greek_sans_serif_bold_italic: simple_map('0x1D790','0x1D7AA'),
+
+    enc_circle: rule_builder({
+      '0x24B6': between_chars('A','Z'),
+      '0x24D0': between_chars('a','z'),
+      '0x2460': between_chars('1','9'),
+      '0x24EA': is_char('0'),
+    }),
+    enc_parens: rule_builder({
+      '0x1F110': between_chars('A','Z'),
+      '0x249C': between_chars('a','z'),
+      '0x2474': between_chars('1','9')
+    }),
+    enc_full_stop: rule_builder({
+      '0x2488': between_chars('1','9'),
+      '0x1F100': is_char('0'),
+    }),
+    enc_comma: rule_builder({
+      '0x1F101': between_chars('0','9'),
+    }),
+    enc_double_circle: rule_builder({
+      '0x24F5': between_chars('1','9'),
+    }),
+    enc_negative_circle: rule_builder({
+      '0x24FF': is_char('0'),
+      '0x2776': between_chars("1","9"),
+      '0x1F150': between_chars('A','Z'),
+    }),
+    enc_negative_serif_circle: rule_builder({
+      '0x278A': between_chars("1","9"),
+      "0x1F10C": is_char("0"),
+    }),
+    enc_circle_italic: rule_builder({ 
+      '0x1F12B': is_char('C'),
+      '0x1F12C': is_char('R'),
+    }),
+    enc_tortoise: rule_builder({ 
+      '0x1F12A': is_char('S'),
+    }),
+    enc_square: rule_builder({
+      '0x1F130': between_chars('A','Z'),    
+    }),
+    enc_negative_square: rule_builder({
+      '0x1F170': between_chars('A','Z'),
+    }),
+    enc_regional: rule_builder({
+      '0x1F1E6': between_chars('A','Z')
+    }),
+    turned: rule_builder((function(){ 
+      var rule = {
+      "0x0250": is_char("a"),
+      "0x01DD": is_char("e"),
+      "0x0245": is_char("V"),
+      "0x0265": is_char("h"),
+      "0x026F": is_char("m"),
+      "0x0279": is_char("r"),
+      "0x0287": is_char("t"),
+      "0x028C": is_char("v"),
+      "0x028D": is_char("w"),
+      "0x028E": is_char("y"),
+      "0x029E": is_char("k"),
+      "0x1D09": is_char("i"),
+      "0x1D77": is_char("g"),
+      "0x2132": is_char("F"),
+      "0x214B": is_char("&"), /* Oooh! */
+      "0x2C6F": is_char("A"),
+      "0xA780": is_char("L"),
+      "0xA781": is_char("l"),
+      "0xA7B0": is_char("K"),
+      "0xA7B1": is_char("T"),
+      "0x218A": between_chars("2","3"),
+      };
+      // borrowed
+      rule[code_for("q")] = is_char("b");
+      rule[code_for("p")] = is_char("d");
+      rule[code_for("W")] = is_char("M");
+      rule[code_for("u")] = is_char("n");
+      rule[code_for("d")] = is_char("p");
+      rule[code_for("b")] = is_char("q");
+      rule[code_for("n")] = is_char("u");
+      rule[code_for("M")] = is_char("W");
+      // suspect
+      rule["0x2141"] = is_char("G");
+      rule["0x1D1A"] = is_char("R");
+      rule["0x2144"] = is_char("Y");
+      return rule;
+    })()),
+  };
+
+  var cast = function( string ) {
+    var input = new String(string);
+    var tx    = translations[translation_name];
+    console.log(translations, translation_name);
+    var output = [];
+    for ( var i = 0; i < input.length; i++ ) {
+      var char_i = input.charCodeAt( i );
+      var char_o = tx( char_i );
+      console.log( "a => b", { a:char_i, b:char_o } );
+      output.push( char_o );
+    }
+    return String.fromCodePoint.apply( String, output );
+  };
+
+
+
+
+
+  var inbox_changed = debounce(function() {
+    outbox.value = cast( inbox.value );
+  }, 250);
+
+  var translation_changed = debounce(function() {
+    translation_name = translation.value;
+    console.log("Chose " + translation_name );
+    inbox_changed();
+  }, 100);
+
+  translation_changed();
+  inbox_changed();
+
+  inbox.addEventListener('input', inbox_changed, false );
+  translation.addEventListener('change',translation_changed, false );
+
+
+  document.getElementById("Alphabet").addEventListener('click', function(){
+    inbox.value = "AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz0123456789";
+    inbox_changed();
+  }, false);
+
+  document.getElementById("QuickBrown").addEventListener('click', function(){
+    inbox.value = "The Quick Brown Fox Jumped Over The Lazy Yellow Dog";
+    inbox_changed();
+  });
+
+})(); 
+    </script>
+  </body>
+</html>
