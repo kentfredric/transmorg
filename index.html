@@ -5,28 +5,59 @@
         input, select {
           width: 100%;
         }
-        option {
+        option, div.eg_great {
           background-color: rgb(200,240,200);
         }
-        option.alpha {
+        .alpha {
           background-color: rgb(255,255,255);
         }
-        option.num {
+        .num {
           background-color: rgb(240,240,200);
         }
-        option.incomplete {
+        .incomplete {
           background-color: rgb(240,240,240);
         }
-        option.exp {
+        .exp {
           background-color: rgb(240,200,200);
         }
-        
+        a {
+          color: blue;
+          text-decoration: underline;
+        }
+        a:hover, a:focus {
+          color: red;
+          cursor: pointer;
+        }
 
+        div.box {
+          border: 1px ridge rgb(128,128,128);
+          background-color: rgb(250,250,250);
+          padding: 5px;
+          margin-top: 5px;
+        }
+        .boxlabel {
+          width: fit-content;
+          font-family: sans-serif;
+          border-bottom: 1px ridge rgb(128,128,128);
+          display: block;
+          margin: 0 auto;
+          padding: 5px;
+        }
+        .clearfix:after {
+          content: "";
+          clear:both;
+          display: block;
+        }
     </style>
   </head>
   <body>
+    <div class="box">
+    <div class="boxlabel">Misc Unicode-Font-Subset Transfomer</div>
+    <div>
+    <label>Your Text</label>
     <input id="inbox" value=""> 
     </input>
+    <label>Desired Font-Like Transform</label>
     <select id="translation">
       <option value="math_bold">Mathematical Bold</option>
       <option value="math_italic" class="incomplete">Mathematical Italic</option>
@@ -64,13 +95,28 @@
 
       <option value="turned" class="exp">Turned Letters</option>
     </select>
+    <label>Transformed Text</label>
     <input id="outbox">
     
     </input>
-
-
-    <a id="Alphabet">Alphabet</a>
-    <a id="QuickBrown">Quick Brown Fox</a>
+    </div></div>
+    <div class="box">
+      <div class="boxlabel">Sample Texts</div>
+      <div>
+        <a id="Alphabet">Alphabet</a>
+        <a id="QuickBrown">Quick Brown Fox</a>
+      </div>
+    </div>
+    <div class="box">
+      <div class="boxlabel">Guide</div>
+      <div>
+        <div class="eg_great">Suitable for Alphabetical and Numerical Transforms</div>
+        <div class="incomplete">Neither Alphabetical or Numerical parts are complete</div>
+        <div class="exp">Full Alphabetical Set, but not usable for anything practical</div>
+        <div class="alpha">Full Alphabetical Set only complete, numbers either all or partially missing</div>
+        <div class="num">Numeric only, Alphabetical set incomplete/missing</div>
+      </div>
+    </div>
     <script>
 
 
